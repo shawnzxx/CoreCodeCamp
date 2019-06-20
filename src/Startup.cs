@@ -29,6 +29,7 @@ namespace CoreCodeCamp
     {
       if (env.IsDevelopment())
       {
+        //on dev will get exception page when encounter exception
         app.UseDeveloperExceptionPage();
       }
       
