@@ -131,7 +131,7 @@ namespace CoreCodeCamp.Controllers
         }
 
         [HttpPut("{moniker}")]
-        public async Task<ActionResult<CampModel>> Put(string moniker, CampModel model) {
+        public async Task<ActionResult<CampModel>> UpdateCamp(string moniker, CampModel model) {
             try
             {
                 var oldCamp = await _campRepository.GetCampAsync(moniker);
@@ -146,6 +146,30 @@ namespace CoreCodeCamp.Controllers
                 {
                     return Ok(_mapper.Map<CampModel>(oldCamp));
                 }
+            }
+            catch (Exception)
+            {
+                return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failed");
+            }
+            return BadRequest();
+        }
+
+        [HttpDelete("{moniker}")]
+        //no need to return payload, so IActionResult no type defination
+        public async Task<IActionResult> DeleteCamp(string moniker) {
+            try
+            {
+                var oldCamp = await _campRepository.GetCampAsync(moniker);
+                if (oldCamp == null) {
+                    return NotFound($"Could not find camp with moniker of {moniker}");
+                }
+
+                _campRepository.Delete(oldCamp);
+
+                if (await _campRepository.SaveChangesAsync()) {
+                    return Ok();
+                }
+
             }
             catch (Exception)
             {
