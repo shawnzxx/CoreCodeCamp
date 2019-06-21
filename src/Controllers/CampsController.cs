@@ -3,6 +3,7 @@ using CoreCodeCamp.Data;
 using CoreCodeCamp.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,15 +13,19 @@ using System.Threading.Tasks;
 namespace CoreCodeCamp.Controllers
 {
     [Route("api/[controller]")]
+    //indicate api behivour, like from body passing payload, other validation attributes
+    [ApiController]
     public class CampsController : ControllerBase
     {
         private readonly ICampRepository _campRepository;
         private readonly IMapper _mapper;
+        private readonly LinkGenerator _linkGenerator;
 
-        public CampsController(ICampRepository campRepository, IMapper mapper)
+        public CampsController(ICampRepository campRepository, IMapper mapper, LinkGenerator linkGenerator)
         {
             this._campRepository = campRepository;
             this._mapper = mapper;
+            this._linkGenerator = linkGenerator;
         }
 
         //return action from this method, action could be success or failed, here is status code coming from
@@ -93,6 +98,36 @@ namespace CoreCodeCamp.Controllers
             {
                 return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failed");
             }
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<CampModel>> Post(CampModel model) {
+            try
+            {
+                //check for dupe on business logic, we can also set on database level unique constrain
+                var excisting = await _campRepository.GetCampAsync(model.Moniker);
+                if (excisting != null) {
+                    return BadRequest("Moniker is in use");
+                }
+
+                var location = _linkGenerator.GetPathByAction("GetCampByMoniker", "Camps", new { moniker = model.Moniker });
+                if (string.IsNullOrWhiteSpace(location)) {
+                    return BadRequest("Could not use current moniker");
+                }
+                
+                //Create new camp
+                var camp = _mapper.Map<Camp>(model);
+                _campRepository.Add(camp);
+
+                if (await _campRepository.SaveChangesAsync()) {
+                    return Created(location, _mapper.Map<CampModel>(camp));
+                }
+            }
+            catch (Exception ex)
+            {
+                return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failed");
+            }
+            return BadRequest();
         }
     }
 }
