@@ -42,11 +42,12 @@ namespace CoreCodeCamp.Controllers
 
         //we code refactoring from IActionResult to ActionResult<T>, return templated version
         [HttpGet]
-        public async Task<ActionResult<CampModel[]>> GetCamps()
+        //query string includeTalks default value = false means may or may not excist
+        public async Task<ActionResult<CampModel[]>> GetCamps(bool includeTalks = false)
         {
             try
             {
-                var results = await _campRepository.GetAllCampsAsync();
+                var results = await _campRepository.GetAllCampsAsync(includeTalks);
 
                 return _mapper.Map<CampModel[]>(results);
             }
@@ -76,6 +77,22 @@ namespace CoreCodeCamp.Controllers
                 return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failed");
             }
 
+        }
+
+        [HttpGet("search")]
+        public async Task<ActionResult<CampModel[]>> SearchCampByDate(DateTime theDate, bool includeTalks = false) {
+            try
+            {
+                var result = await _campRepository.GetAllCampsByEventDate(theDate, includeTalks);
+                if (!result.Any()) {
+                    return NotFound();
+                }
+                return _mapper.Map<CampModel[]>(result);
+            }
+            catch (Exception)
+            {
+                return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failed");
+            }
         }
     }
 }
