@@ -13,7 +13,8 @@ using System.Threading.Tasks;
 namespace CoreCodeCamp.Controllers
 {
     [Route("api/[controller]")]
-    //indicate api behivour, like from body passing payload, other validation attributes
+    //indicate we really use below action as an actual API(not view or HTML page)
+    //like auto impletmened body binding from post request (For the past we were using [FromBody])
     [ApiController]
     public class CampsController : ControllerBase
     {
@@ -28,7 +29,8 @@ namespace CoreCodeCamp.Controllers
             this._linkGenerator = linkGenerator;
         }
 
-        //return action from this method, action could be success or failed, here is status code coming from
+        //IActionResult is interface have a lot of pre-defined return result can use: https://exceptionnotfound.net/asp-net-core-demystified-action-results/
+        //whereas ActionResult<T> is specific return type need to return: https://joonasw.net/view/aspnet-core-2-1-actionresult-of-t
         //[HttpGet]
         //public async Task<IActionResult> GetCamps() {
         //    try
@@ -110,8 +112,8 @@ namespace CoreCodeCamp.Controllers
                     return BadRequest("Moniker is in use");
                 }
 
-                var location = _linkGenerator.GetPathByAction("GetCampByMoniker", "Camps", new { moniker = model.Moniker });
-                if (string.IsNullOrWhiteSpace(location)) {
+                var url = _linkGenerator.GetPathByAction("GetCampByMoniker", "Camps", values: new { moniker = model.Moniker });
+                if (string.IsNullOrWhiteSpace(url)) {
                     return BadRequest("Could not use current moniker");
                 }
                 
@@ -120,14 +122,17 @@ namespace CoreCodeCamp.Controllers
                 _campRepository.Add(camp);
 
                 if (await _campRepository.SaveChangesAsync()) {
-                    return Created(location, _mapper.Map<CampModel>(camp));
+                    return Created(url, _mapper.Map<CampModel>(camp));
+                }
+                else
+                {
+                    return BadRequest("Failed to save new camp");
                 }
             }
             catch (Exception)
             {
                 return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failed");
             }
-            return BadRequest();
         }
 
         [HttpPut("{moniker}")]
@@ -142,16 +147,14 @@ namespace CoreCodeCamp.Controllers
 
                 _mapper.Map(model, oldCamp);
 
-                if (await _campRepository.SaveChangesAsync())
-                {
-                    return Ok(_mapper.Map<CampModel>(oldCamp));
-                }
+                await _campRepository.SaveChangesAsync();
+                
+                return Ok(_mapper.Map<CampModel>(oldCamp));
             }
             catch (Exception)
             {
                 return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failed");
             }
-            return BadRequest();
         }
 
         [HttpDelete("{moniker}")]

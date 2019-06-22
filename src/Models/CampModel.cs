@@ -9,6 +9,7 @@ namespace CoreCodeCamp.Models
 {
     public class CampModel
     {
+        public int CampId { get; set; }
         [Required]
         [StringLength(100)]
         public string Name { get; set; }

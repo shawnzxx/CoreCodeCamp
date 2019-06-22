@@ -15,6 +15,9 @@ namespace CoreCodeCamp.Data
             this.CreateMap<Camp, CampModel>()
                 .ForMember(c => c.Venue, o => o.MapFrom(m => m.Location.VenueName))
                 .ReverseMap();
+
+            this.CreateMap<Talk, TalkModel>()
+                .ReverseMap();
         }
     }
 }
